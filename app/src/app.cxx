@@ -5,6 +5,7 @@
 
 #include <cstdlib>
 #include <stdexcept>
+#include <cmath>
 
 inline u32 VAOs[2];
 inline u32 shader_program_1; 
@@ -53,14 +54,14 @@ namespace bit {
     //  -0.5f,-0.5f, 0.0f,
     //   0.5f, 0.5f, 0.0f
     // };
-    float vertices[] = {
+    f32 vertices[] = {
         -0.9f, -0.5f, 0.0f,  // left 
-        -0.0f, -0.5f, 0.0f,  // right
+        -0.1f, -0.5f, 0.0f,  // right
         -0.45f, 0.5f, 0.0f,  // top 
     };
-    float vertices_1[] = {
+    f32 vertices_1[] = {
         0.0f, -0.5f, 0.0f,  // left
-        0.9f, -0.5f, 0.0f,  // right
+        0.90f, -0.5f, 0.0f,  // right
         0.45f, 0.5f, 0.0f   // top 
     };
     //
@@ -85,9 +86,11 @@ namespace bit {
 
     const char* frag_data_2 = "#version 450\n"
     "out vec4 frag_color;\n"
+    "uniform vec4 our_color; //we set this value in the openGL code\n"
     "void main()\n"
     "{\n"
-    " frag_color = vec4(0.0f, 1.0f, 1.0f, 1.0f);\n"
+    " //frag_color = vec4(0.0f, 1.0f, 1.0f, 1.0f);\n"
+    "  frag_color = our_color;"
     "}\0";
     
     // create shaders
@@ -140,7 +143,8 @@ namespace bit {
     glEnableVertexAttribArray(0);
     // glBindVertexArray(0); // not really necessary as well, but beware of calls that could affect VAOs while this one is bound (like binding element buffer objects, or enabling/disabling vertex attributes)
     // wireframe mode
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); // GL_FILL to fill it with the cleared color.
+    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); // GL_FILL to fill it with the cleared color.
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
   }
   
   void App::run() {
@@ -149,7 +153,11 @@ namespace bit {
 
       // RENDER FUNCTIONS GO HERE
       set_background_color(0.2, 0.3, 0.3, 1.0);
+      f32 time_value = glfwGetTime();
+      f32 green_value = (std::sin(time_value) / 2.0f) + 0.5f;
+      i32 vertex_color_location = glGetUniformLocation(shader_program_2, "our_color");
       glUseProgram(shader_program_2);
+      glUniform4f(vertex_color_location, 0.0f, green_value, 0.0f, 1.0f);
 
       glBindVertexArray(VAOs[0]);
       glDrawArrays(GL_TRIANGLES, 0, 3);
