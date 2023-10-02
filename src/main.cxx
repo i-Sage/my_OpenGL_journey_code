@@ -1,11 +1,13 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include <shader.hxx>
 #include <data_types.hxx>
+#include <textures.hxx>
 
 
 // INFO: process all input: query GLFW whether relevant keys are pressed/released 
@@ -49,8 +51,8 @@ auto main() -> int {
 
   bit::Shader ourShader
   (
-    "/home/sage/Desktop/projects/computer_graphics_and_simulations/my_OpenGL_journey_code/shaders/vs.glsl",
-    "/home/sage/Desktop/projects/computer_graphics_and_simulations/my_OpenGL_journey_code/shaders/fs.glsl"
+    "../../shaders/vs.glsl",
+    "../../shaders/fs.glsl"
   );
 
   f32 vertices[] = {
@@ -65,52 +67,9 @@ auto main() -> int {
     0, 1, 3, // first triangle
     1, 2, 3  // second triangle
   };
-  
-  u32 texture_1;
-  glGenTextures(1, &texture_1);
-  glBindTexture(GL_TEXTURE_2D, texture_1);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-  i32 width;
-  i32 height;
-  i32 nr_channels;
-  stbi_set_flip_vertically_on_load(true);
-
-  u8 *data = stbi_load("/home/sage/Desktop/projects/computer_graphics_and_simulations/my_OpenGL_journey_code/textures/container.jpg",
-                       &width, &height, &nr_channels, 0);
-
-  if (data) {
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height,
-                 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-    glGenerateMipmap(GL_TEXTURE_2D);
-  } else {
-    std::cerr << "Failed to load texture" << std::endl;
-  }
-  stbi_image_free(data);
-
-
-  u32 texture_2;
-  glGenTextures(1, &texture_2);
-  glBindTexture(GL_TEXTURE_2D, texture_2);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-  data = stbi_load("/home/sage/Desktop/projects/computer_graphics_and_simulations/my_OpenGL_journey_code/textures/awesomeface.png",
-                       &width, &height, &nr_channels, 0);
-
-  if (data) {
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height,
-                 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-    glGenerateMipmap(GL_TEXTURE_2D);
-  } else {
-    std::cerr << "Failed to load texture" << std::endl;
-  }
-  stbi_image_free(data);
+ 
+  u32 texture_1 = bit::generate_texture("../../textures/window.png");
+  u32 texture_2 = bit::generate_texture("../../textures/marble.jpg");
 
   u32 VAO;
   u32 VBO;
@@ -142,6 +101,7 @@ auto main() -> int {
   
   ourShader.setInt("texture_1", 0);
   ourShader.setInt("texture_2", 1);
+    
 
   // INFO: render loop
   while (!glfwWindowShouldClose(window)) {
