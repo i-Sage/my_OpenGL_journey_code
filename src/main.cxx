@@ -68,8 +68,8 @@ auto main() -> int {
     1, 2, 3  // second triangle
   };
  
-  u32 texture_1 = bit::generate_texture("../../textures/window.png");
-  u32 texture_2 = bit::generate_texture("../../textures/marble.jpg");
+  u32 texture_1 = bit::generate_texture("../../textures/container.jpg");
+  u32 texture_2 = bit::generate_texture("../../textures/awesomeface.png");
 
   u32 VAO;
   u32 VBO;
@@ -102,6 +102,20 @@ auto main() -> int {
   ourShader.setInt("texture_1", 0);
   ourShader.setInt("texture_2", 1);
     
+  // NOTE: Going 3D
+  using glm::mat4;
+
+  mat4 model = mat4(1.0f);
+  model = glm::rotate(model, glm::radians(-55.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+  
+  mat4 view = mat4(1.0f);
+  view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+
+  mat4 projection;
+  projection = glm::perspective(glm::radians(45.0f),
+                                static_cast<f32>(SCR_WIDTH) / SCR_HEIGHT,
+                                0.1f,
+                                100.0f); 
 
   // INFO: render loop
   while (!glfwWindowShouldClose(window)) {
@@ -115,8 +129,12 @@ auto main() -> int {
  
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, texture_2);
-
+    
     ourShader.use();
+    ourShader.setMat4("model", model);
+    ourShader.setMat4("view", view);
+    ourShader.setMat4("projection", projection);
+
     glBindVertexArray(VAO);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0); 
     glfwSwapBuffers(window);
