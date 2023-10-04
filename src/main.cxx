@@ -8,13 +8,65 @@
 #include <shader.hxx>
 #include <data_types.hxx>
 #include <textures.hxx>
+#include <camera.hxx>
 #include <cmath>
+
+// WARN: REMOVE THESE GLOBALS !!!
+constexpr u32 SCR_WIDTH  = 600;
+constexpr u32 SCR_HEIGHT = 350;
+
+// INFO: Camera
+bit::Camera camera{glm::vec3(0.0f, 0.0f, 3.0f)};
+f32 lastX = SCR_WIDTH  / 2.0f;
+f32 lastY = SCR_HEIGHT / 2.0f;
+bool firstMouse = true;
+
+// INFO: Timing
+auto deltaTime = 0.0f;
+auto lastFrame = 0.0f;
+
 
 // INFO: process all input: query GLFW whether relevant keys are pressed/released 
 // this frame and react accordingly
-void processInput(GLFWwindow *window) {
-  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+void processInput(GLFWwindow *window)
+{
+  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
     glfwSetWindowShouldClose(window, true);
+  }    
+
+  using namespace bit;
+  if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+      camera.ProcessKeyboard(FORWARD, deltaTime);
+  if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+      camera.ProcessKeyboard(BACKWARD, deltaTime);
+  if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+      camera.ProcessKeyboard(LEFT, deltaTime);
+  if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+      camera.ProcessKeyboard(RIGHT, deltaTime);
+}
+
+void mouse_callback(GLFWwindow *window, f64 xposIn, f64 yposIn) {
+  float xpos = static_cast<float>(xposIn);
+  float ypos = static_cast<float>(yposIn);
+
+  if (firstMouse)
+  {
+    lastX = xpos;
+    lastY = ypos;
+    firstMouse = false;
+  }
+
+  float xoffset = xpos - lastX;
+  float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+
+  lastX = xpos;
+  lastY = ypos;
+
+  camera.ProcessMouseMovement(xoffset, yoffset);
+}
+
+void scroll_callback(GLFWwindow *window, f64 xoffset, f64 yoffset) {
+  camera.ProcessMouseScroll(static_cast<f32>(yoffset));
 }
 
 // INFO: whenever the window size changed (by OS or user resize) this callback
@@ -33,9 +85,7 @@ auto main() -> int {
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   
-  constexpr u32 SCR_WIDTH  = 600;
-  constexpr u32 SCR_HEIGHT = 350;
-
+  
   auto *window = glfwCreateWindow(SCR_WIDTH,
                                   SCR_HEIGHT,
                                   "LearnOpenGL",
@@ -47,8 +97,12 @@ auto main() -> int {
     glfwTerminate();
     return -1;
   }
+
   glfwMakeContextCurrent(window);
   glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+  glfwSetCursorPosCallback(window, mouse_callback);
+  glfwSetScrollCallback(window, scroll_callback);
+  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
   // INFO: glad: load all OpenGL function pointers
   if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
@@ -145,17 +199,6 @@ auto main() -> int {
   ourShader.setInt("texture_1", 0);
   ourShader.setInt("texture_2", 1);
  
-  // INFO: Setting up the camera
-  auto camera_position = vec3(0.0f, 0.0f, 3.0f);
-  auto camera_target = vec3(0.0f, 0.0f, 0.0f);
-  auto camera_direction = glm::normalize(camera_position - camera_target);
-
-  auto up = glm::vec3(0.0f, 1.0f, 0.0f);
-  auto camera_right = glm::normalize(glm::cross(up, camera_direction));
-  auto camera_up = glm::cross(camera_direction, camera_right);
-
-  constexpr f32 radius = 10.0f;
-
   // NOTE: Going 3D
   mat4 model = mat4(1.0f);
   model = glm::rotate(model,
@@ -170,8 +213,13 @@ auto main() -> int {
 
   // INFO: render loop
   while (!glfwWindowShouldClose(window)) {
-    processInput(window);
+    // INFO: Per-Frame time logic
+    f32 current_frame = static_cast<f32>(glfwGetTime());
+    deltaTime = current_frame - lastFrame;
+    lastFrame = current_frame;
 
+    processInput(window);
+    
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
@@ -180,14 +228,9 @@ auto main() -> int {
  
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, texture_2);
-    
-    f32 cam_x = std::sin(glfwGetTime()) * radius;
-    f32 cam_z = std::cos(glfwGetTime()) * radius;
 
-    mat4 view; 
-    view = glm::lookAt(vec3(cam_x, 0.0f, cam_z),
-                       vec3(0.0f, 0.0f, 0.0f),
-                       vec3(0.0f, 1.0f, 0.0f));
+    mat4 view = camera.GetViewMatrix();
+
 
     ourShader.use(); 
     ourShader.setMat4("model", model);
@@ -210,6 +253,7 @@ auto main() -> int {
       ourShader.setMat4("model", model);
       glDrawArrays(GL_TRIANGLES, 0, 36);
      }
+
     glfwSwapBuffers(window);
     glfwPollEvents();
   }
